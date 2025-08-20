@@ -25,10 +25,7 @@
       content="온라인에서 쉽게 만드는 나만의 만다라트 계획표. 핵심 목표를 설정하고 체계적으로 목표를 달성하세요."
     />
     <meta property="og:type" content="website" />
-    <!-- ❗️아래 'content'에 본인의 GitHub Pages 주소를 넣어주세요 -->
     <meta property="og:url" content="https://dahye000.github.io/mandarlart/" />
-
-    <!-- ❗️사이트를 대표하는 이미지 주소를 넣으면 링크 공유 시 이미지가 보입니다 -->
     <!-- <meta property="og:image" content="your-image-url.png"> -->
 
     <!-- Tailwind CSS for styling -->
@@ -86,6 +83,9 @@
 
       textarea {
         resize: none;
+        display: grid;
+        place-content: center;
+        overflow: hidden;
       }
       textarea:focus {
         outline: none;
@@ -205,7 +205,7 @@
             <textarea
               value={value}
               onChange={onChange}
-              className="w-full h-full text-center bg-transparent border-none text-xs md:text-sm p-1 focus:ring-0"
+              className="w-full h-full text-center bg-transparent border-none text-sm md:text-base p-1 focus:ring-0"
             />
           </div>
         );
@@ -252,7 +252,7 @@
         const [isExpanded, setIsExpanded] = useState(true);
         const [showInstructions, setShowInstructions] = useState(false);
         const [highlightedIndex, setHighlightedIndex] = useState(null);
-        const mandalartRef = useRef(null);
+        const mandalartCaptureAreaRef = useRef(null); // Renamed ref for clarity
 
         useEffect(() => {
           localStorage.setItem("mandalartAppState", JSON.stringify(appState));
@@ -296,10 +296,8 @@
         };
 
         const saveAsImage = () => {
-          const element = mandalartRef.current;
+          const element = mandalartCaptureAreaRef.current;
           if (!element) return;
-          const grids = element.querySelectorAll(".grid-hover-effect");
-          grids.forEach((grid) => (grid.style.boxShadow = "none"));
 
           html2canvas(element, {
             backgroundColor: appState.theme === "light" ? "#F8FAFC" : "#0F172A",
@@ -309,7 +307,6 @@
             link.download = `${appState.userName || "My"}_Mandalart.png`;
             link.href = canvas.toDataURL("image/png");
             link.click();
-            grids.forEach((grid) => (grid.style.boxShadow = ""));
           });
         };
 
@@ -326,10 +323,7 @@
         };
 
         const renderFullView = () => (
-          <div
-            ref={mandalartRef}
-            className="grid grid-cols-3 gap-3 w-full max-w-5xl p-4 glassmorphism rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700"
-          >
+          <div className="grid grid-cols-3 gap-3 w-full max-w-5xl p-4 glassmorphism rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700">
             {Array.from({ length: 9 }).map((_, gridIndex) => {
               const isHighlighted =
                 highlightedIndex !== null && gridIndex === highlightedIndex;
@@ -449,19 +443,6 @@
               </div>
             </header>
 
-            <div className="flex justify-center items-center my-8">
-              <input
-                type="text"
-                value={appState.userName}
-                onChange={handleUserNameChange}
-                placeholder="이름 입력"
-                className="text-center text-2xl md:text-3xl font-bold bg-transparent border-b-2 border-slate-300 dark:border-slate-600 focus:border-indigo-500 focus:outline-none w-48"
-              />
-              <h2 className="text-2xl md:text-3xl font-bold ml-2">
-                의 만다라트
-              </h2>
-            </div>
-
             <div className="flex flex-wrap justify-center gap-3 mb-8">
               <button
                 onClick={() => setIsExpanded(!isExpanded)}
@@ -488,7 +469,28 @@
 
             <main className="flex justify-center items-start w-full">
               <div className="w-full max-w-5xl flex justify-center">
-                {isExpanded ? renderFullView() : renderDetailView()}
+                {isExpanded ? (
+                  <div
+                    ref={mandalartCaptureAreaRef}
+                    className="w-full flex flex-col items-center"
+                  >
+                    <div className="flex justify-center items-end my-8">
+                      <input
+                        type="text"
+                        value={appState.userName}
+                        onChange={handleUserNameChange}
+                        placeholder="이름 입력"
+                        className="text-center text-2xl md:text-3xl font-bold bg-transparent border-b-2 border-slate-300 dark:border-slate-600 focus:border-indigo-500 focus:outline-none w-48"
+                      />
+                      <span className="text-2xl md:text-3xl font-bold ml-2 pb-[2px]">
+                        의 만다라트
+                      </span>
+                    </div>
+                    {renderFullView()}
+                  </div>
+                ) : (
+                  renderDetailView()
+                )}
               </div>
             </main>
 
