@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>온라인 만다라트 계획표 | 나만의 목표 달성 도구</title>
+
+    <!-- SEO Meta Tags -->
+    <meta
+      name="description"
+      content="온라인에서 쉽게 만드는 나만의 만다라트 계획표. 핵심 목표를 설정하고 8가지 세부 목표와 64개 실천 계획을 체계적으로 관리하여 목표를 달성하세요."
+    />
+    <meta
+      name="keywords"
+      content="만다라트, 만다라트 계획표, 만다라트 만들기, 목표 달성, 계획표, 온라인 만다라트, Mandalart, goal setting"
+    />
+
+    <!-- Open Graph Tags for social media sharing -->
+    <meta
+      property="og:title"
+      content="온라인 만다라트 계획표 | Mandalart Planner"
+    />
+    <meta
+      property="og:description"
+      content="온라인에서 쉽게 만드는 나만의 만다라트 계획표. 핵심 목표를 설정하고 체계적으로 목표를 달성하세요."
+    />
+    <meta property="og:type" content="website" />
+    <!-- ❗️아래 'content'에 본인의 GitHub Pages 주소를 넣어주세요 -->
+    <meta property="og:url" content="https://dahye000.github.io/mandarlart/" />
+
+    <!-- ❗️사이트를 대표하는 이미지 주소를 넣으면 링크 공유 시 이미지가 보입니다 -->
+    <!-- <meta property="og:image" content="your-image-url.png"> -->
+
+    <!-- Tailwind CSS for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts for a new font -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;700&display=swap"
+      rel="stylesheet"
+    />
+    <!-- Icon library (Feather Icons) -->
+    <script src="https://unpkg.com/feather-icons"></script>
+    <!-- html2canvas for saving as image -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script>
+      // Tailwind CSS Dark Mode Configuration
+      tailwind.config = {
+        darkMode: "class",
+      };
+    </script>
+    <style>
+      /* Custom styles */
+      html {
+        scroll-behavior: smooth;
+      }
+      body {
+        font-family: "IBM Plex Sans KR", sans-serif;
+      }
+
+      /* Animated Gradient Text */
+      .animated-gradient {
+        background: linear-gradient(90deg, #4f46e5, #7c3aed, #06b6d4, #4f46e5);
+        background-size: 200% auto;
+        animation: gradient-animation 5s linear infinite;
+      }
+      @keyframes gradient-animation {
+        to {
+          background-position: 200% center;
+        }
+      }
+
+      /* Central cell of a 3x3 grid */
+      .center-cell {
+        background-color: #e0e7ff;
+      } /* Indigo 100 */
+      .dark .center-cell {
+        background-color: #312e81;
+      } /* Indigo 900 */
+
+      /* Central grid in the 9x9 view */
+      .main-grid {
+        border: 2px solid #6366f1;
+      } /* Indigo 500 */
+
+      textarea {
+        resize: none;
+      }
+      textarea:focus {
+        outline: none;
+        box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.5);
+      }
+
+      /* Animation for grid hover */
+      .grid-hover-effect {
+        transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out,
+          filter 0.2s;
+      }
+      .grid-hover-effect:hover {
+        transform: scale(1.03);
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1),
+          0 4px 6px -2px rgba(0, 0, 0, 0.05);
+      }
+
+      /* Smooth transition for toggle */
+      .toggle-content {
+        max-height: 0;
+        overflow: hidden;
+        transition: max-height 0.4s ease-in-out;
+      }
+      .toggle-content-open {
+        max-height: 500px;
+      }
+
+      /* Glassmorphism effect */
+      .glassmorphism {
+        background: rgba(255, 255, 255, 0.6);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+      }
+      .dark .glassmorphism {
+        background: rgba(30, 41, 59, 0.6); /* slate-800 with opacity */
+      }
+
+      /* Highlight effect for hovered grid */
+      .highlighted-grid {
+        filter: brightness(1.1);
+        transform: scale(1.03);
+      }
+    </style>
+  </head>
+  <body
+    class="bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-200 transition-colors duration-300"
+  >
+    <div id="root"></div>
+
+    <!-- React and Babel scripts -->
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <script type="text/babel">
+      const { useState, useEffect, useRef } = React;
+
+      // --- Helper Functions ---
+      const createDefaultData = () => {
+        const defaultData = Array(81).fill("");
+        defaultData[40] = "핵심 목표";
+        const mainToSubMap = {
+          36: 4,
+          37: 13,
+          38: 22,
+          39: 31,
+          41: 49,
+          42: 58,
+          43: 67,
+          44: 76,
+        };
+        let goalCounter = 1;
+        for (const mainIndex in mainToSubMap) {
+          const subIndex = mainToSubMap[mainIndex];
+          const placeholder = `세부 목표 ${goalCounter++}`;
+          defaultData[mainIndex] = placeholder;
+          defaultData[subIndex] = placeholder;
+        }
+        return defaultData;
+      };
+
+      const initializeData = () => {
+        try {
+          const savedState = localStorage.getItem("mandalartAppState");
+          if (savedState) {
+            const parsedState = JSON.parse(savedState);
+            if (parsedState.cellsData && parsedState.cellsData.length === 81) {
+              return { ...parsedState, theme: parsedState.theme || "light" };
+            }
+          }
+        } catch (error) {
+          console.error("Failed to load data", error);
+        }
+        return { userName: "", cellsData: createDefaultData(), theme: "light" };
+      };
+
+      // --- Components ---
+
+      function MandalartCell({
+        value,
+        onChange,
+        isCenter,
+        onClick,
+        onMouseEnter,
+        onMouseLeave,
+      }) {
+        const cellClasses = `border border-slate-200 dark:border-slate-700 rounded-lg flex justify-center items-center p-1 ${
+          isCenter ? "center-cell font-bold" : "bg-white dark:bg-slate-800"
+        } transition-shadow duration-200 hover:shadow-lg cursor-pointer`;
+        return (
+          <div
+            className={cellClasses}
+            onClick={onClick}
+            onMouseEnter={onMouseEnter}
+            onMouseLeave={onMouseLeave}
+          >
+            <textarea
+              value={value}
+              onChange={onChange}
+              className="w-full h-full text-center bg-transparent border-none text-xs md:text-sm p-1 focus:ring-0"
+            />
+          </div>
+        );
+      }
+
+      function MandalartGrid({
+        gridData,
+        onCellChange,
+        onCellClick,
+        isMain,
+        customClass,
+        onCellMouseEnter,
+        onCellMouseLeave,
+      }) {
+        const gridClasses = `grid grid-cols-3 gap-1 p-2 rounded-xl aspect-square ${
+          isMain ? "main-grid" : "bg-slate-200 dark:bg-slate-700"
+        } ${customClass}`;
+        return (
+          <div className={gridClasses}>
+            {gridData.map((cellValue, index) => (
+              <MandalartCell
+                key={index}
+                value={cellValue}
+                onChange={(e) => onCellChange(index, e.target.value)}
+                onClick={() => onCellClick(index)}
+                isCenter={index === 4}
+                onMouseEnter={() => onCellMouseEnter && onCellMouseEnter(index)}
+                onMouseLeave={() => onCellMouseLeave && onCellMouseLeave()}
+              />
+            ))}
+          </div>
+        );
+      }
+
+      function Icon({ name, size = 16 }) {
+        return (
+          <i data-feather={name} style={{ width: size, height: size }}></i>
+        );
+      }
+
+      function App() {
+        const [appState, setAppState] = useState(initializeData);
+        const [activeIndex, setActiveIndex] = useState(4);
+        const [isExpanded, setIsExpanded] = useState(true);
+        const [showInstructions, setShowInstructions] = useState(false);
+        const [highlightedIndex, setHighlightedIndex] = useState(null);
+        const mandalartRef = useRef(null);
+
+        useEffect(() => {
+          localStorage.setItem("mandalartAppState", JSON.stringify(appState));
+          if (appState.theme === "dark") {
+            document.documentElement.classList.add("dark");
+          } else {
+            document.documentElement.classList.remove("dark");
+          }
+          feather.replace();
+        }, [appState, showInstructions]);
+
+        const handleThemeChange = () =>
+          setAppState((p) => ({
+            ...p,
+            theme: p.theme === "light" ? "dark" : "light",
+          }));
+        const handleUserNameChange = (e) =>
+          setAppState((p) => ({ ...p, userName: e.target.value }));
+
+        const handleCellChange = (gridIndex, cellIndex, value) => {
+          const dataIndex = gridIndex * 9 + cellIndex;
+          const newCellsData = [...appState.cellsData];
+          newCellsData[dataIndex] = value;
+
+          if (gridIndex === 4 && cellIndex !== 4) {
+            const subGridCenterMap = [4, 13, 22, 31, 49, 58, 67, 76];
+            const subGridIndexMap = [0, 1, 2, 3, 5, 6, 7, 8];
+            const mapIndex = subGridIndexMap.indexOf(cellIndex);
+            if (mapIndex > -1) newCellsData[subGridCenterMap[mapIndex]] = value;
+          } else if (cellIndex === 4 && gridIndex !== 4) {
+            const mainGridCellMap = [36, 37, 38, 39, 40, 41, 42, 43, 44];
+            newCellsData[mainGridCellMap[gridIndex]] = value;
+          }
+
+          setAppState((p) => ({ ...p, cellsData: newCellsData }));
+        };
+
+        const handleSubgridClick = (gridIndex) => {
+          setActiveIndex(gridIndex);
+          setIsExpanded(false);
+        };
+
+        const saveAsImage = () => {
+          const element = mandalartRef.current;
+          if (!element) return;
+          const grids = element.querySelectorAll(".grid-hover-effect");
+          grids.forEach((grid) => (grid.style.boxShadow = "none"));
+
+          html2canvas(element, {
+            backgroundColor: appState.theme === "light" ? "#F8FAFC" : "#0F172A",
+            scale: 2,
+          }).then((canvas) => {
+            const link = document.createElement("a");
+            link.download = `${appState.userName || "My"}_Mandalart.png`;
+            link.href = canvas.toDataURL("image/png");
+            link.click();
+            grids.forEach((grid) => (grid.style.boxShadow = ""));
+          });
+        };
+
+        const clearData = () => {
+          if (window.confirm("정말로 모든 데이터를 초기화하시겠습니까?")) {
+            setAppState({
+              userName: "",
+              cellsData: createDefaultData(),
+              theme: appState.theme,
+            });
+            setActiveIndex(4);
+            setIsExpanded(true);
+          }
+        };
+
+        const renderFullView = () => (
+          <div
+            ref={mandalartRef}
+            className="grid grid-cols-3 gap-3 w-full max-w-5xl p-4 glassmorphism rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700"
+          >
+            {Array.from({ length: 9 }).map((_, gridIndex) => {
+              const isHighlighted =
+                highlightedIndex !== null && gridIndex === highlightedIndex;
+              const customClass = `grid-hover-effect ${
+                isHighlighted ? "highlighted-grid" : ""
+              }`;
+
+              return (
+                <MandalartGrid
+                  key={gridIndex}
+                  gridData={appState.cellsData.slice(
+                    gridIndex * 9,
+                    gridIndex * 9 + 9
+                  )}
+                  onCellChange={(cellIndex, value) =>
+                    handleCellChange(gridIndex, cellIndex, value)
+                  }
+                  onCellClick={() => handleSubgridClick(gridIndex)}
+                  isMain={gridIndex === 4}
+                  customClass={customClass}
+                  onCellMouseEnter={
+                    gridIndex === 4
+                      ? (cellIndex) => setHighlightedIndex(cellIndex)
+                      : null
+                  }
+                  onCellMouseLeave={
+                    gridIndex === 4 ? () => setHighlightedIndex(null) : null
+                  }
+                />
+              );
+            })}
+          </div>
+        );
+
+        const renderDetailView = () => {
+          const centerGridData = appState.cellsData.slice(36, 45);
+          const activeGridTitle = centerGridData[activeIndex] || "세부 목표";
+          return (
+            <div className="w-full max-w-xl flex flex-col items-center">
+              <h2 className="text-3xl font-bold mb-4 p-3 bg-indigo-200 dark:bg-indigo-800 rounded-lg shadow-md">
+                {activeGridTitle}
+              </h2>
+              <MandalartGrid
+                gridData={appState.cellsData.slice(
+                  activeIndex * 9,
+                  activeIndex * 9 + 9
+                )}
+                onCellChange={(cellIndex, value) =>
+                  handleCellChange(activeIndex, cellIndex, value)
+                }
+                onCellClick={() => {}}
+                isMain={true}
+                customClass="shadow-2xl"
+              />
+            </div>
+          );
+        };
+
+        return (
+          <div className="min-h-screen flex flex-col items-center p-4 sm:p-6 relative">
+            <button
+              onClick={handleThemeChange}
+              className="absolute top-4 right-4 p-2 rounded-full text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+            >
+              {appState.theme === "light" ? (
+                <Icon name="moon" />
+              ) : (
+                <Icon name="sun" />
+              )}
+            </button>
+
+            <header className="text-center my-12 w-full max-w-3xl">
+              <h1 className="text-7xl md:text-8xl font-bold animated-gradient bg-clip-text text-transparent mb-4 tracking-wide">
+                Mandalart
+              </h1>
+              <p className="text-md text-slate-600 dark:text-slate-400 max-w-2xl mx-auto">
+                만다라트란 '목표를 달성하게 해주는 기술'이라는 의미로, 핵심
+                목표를 중심으로 생각을 끊임없이 확장해 나가는 시각적 계획
+                도구입니다.
+              </p>
+              <div className="mt-4 max-w-2xl mx-auto">
+                <button
+                  onClick={() => setShowInstructions(!showInstructions)}
+                  className="flex items-center gap-2 mx-auto px-4 py-2 text-sm font-semibold text-slate-600 dark:text-slate-300 bg-slate-200 dark:bg-slate-700 rounded-full hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors"
+                >
+                  <Icon name="help-circle" size={14} />
+                  <span>작성법 보기</span>
+                  <Icon
+                    name={showInstructions ? "chevron-up" : "chevron-down"}
+                    size={14}
+                  />
+                </button>
+                <div
+                  className={`toggle-content ${
+                    showInstructions ? "toggle-content-open" : ""
+                  }`}
+                >
+                  <ul className="list-disc list-inside mt-4 space-y-2 text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 p-4 rounded-md text-left">
+                    <li>
+                      <strong>1단계:</strong> 가장 중앙에 있는 '핵심 목표'를
+                      작성합니다.
+                    </li>
+                    <li>
+                      <strong>2단계:</strong> 핵심 목표 주변 8칸에 '세부 목표'를
+                      채웁니다.
+                    </li>
+                    <li>
+                      <strong>3단계:</strong> 주변 8개 표의 중앙에 각 '세부
+                      목표'가 자동으로 채워집니다.
+                    </li>
+                    <li>
+                      <strong>4단계:</strong> 각 세부 목표를 달성하기 위한 '실천
+                      계획'을 나머지 칸에 채웁니다.
+                    </li>
+                  </ul>
+                </div>
+              </div>
+            </header>
+
+            <div className="flex justify-center items-center my-8">
+              <input
+                type="text"
+                value={appState.userName}
+                onChange={handleUserNameChange}
+                placeholder="이름 입력"
+                className="text-center text-2xl md:text-3xl font-bold bg-transparent border-b-2 border-slate-300 dark:border-slate-600 focus:border-indigo-500 focus:outline-none w-48"
+              />
+              <h2 className="text-2xl md:text-3xl font-bold ml-2">
+                의 만다라트
+              </h2>
+            </div>
+
+            <div className="flex flex-wrap justify-center gap-3 mb-8">
+              <button
+                onClick={() => setIsExpanded(!isExpanded)}
+                className="flex items-center gap-2 px-4 py-2 bg-slate-700 text-white font-semibold rounded-lg shadow-md hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-opacity-75 transition-colors"
+              >
+                <Icon name={isExpanded ? "zoom-in" : "zoom-out"} size={14} />
+                <span>{isExpanded ? "세부 목표 보기" : "전체 보기"}</span>
+              </button>
+              <button
+                onClick={saveAsImage}
+                className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white font-semibold rounded-lg shadow-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-75 transition-colors"
+              >
+                <Icon name="download" size={14} />
+                <span>이미지로 저장</span>
+              </button>
+              <button
+                onClick={clearData}
+                className="flex items-center gap-2 px-4 py-2 bg-rose-600 text-white font-semibold rounded-lg shadow-md hover:bg-rose-700 focus:outline-none focus:ring-2 focus:ring-rose-500 focus:ring-opacity-75 transition-colors"
+              >
+                <Icon name="trash-2" size={14} />
+                <span>초기화</span>
+              </button>
+            </div>
+
+            <main className="flex justify-center items-start w-full">
+              <div className="w-full max-w-5xl flex justify-center">
+                {isExpanded ? renderFullView() : renderDetailView()}
+              </div>
+            </main>
+
+            <footer className="text-center mt-16 mb-8">
+              <a
+                href="https://github.com/Dahye000/mandarlart"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 text-slate-500 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
+              >
+                <Icon name="github" size={16} />
+                <span className="font-semibold">View on GitHub</span>
+              </a>
+            </footer>
+          </div>
+        );
+      }
+
+      const container = document.getElementById("root");
+      const root = ReactDOM.createRoot(container);
+      root.render(<App />);
+    </script>
+  </body>
+</html>
